@@ -38,7 +38,7 @@ class Logger implements OnClose, OnConnect, OnShutdown, OnStart, LoggerInterface
     {
         $this->alert(
             'Server is listening {address}:{port}',
-            ['port' => $server->getSettings()->getPort(), 'address' => $server->getSettings()->getAddress()]
+            ['port' => $server->getConfiguration()->getPort(), 'address' => $server->getConfiguration()->getAddress()]
         );
     }
 

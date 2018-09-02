@@ -19,7 +19,12 @@ class Client
      */
     private $handler;
 
-    public function __construct(SwooleServer $handler, int $clientId)
+    /**
+     * Client constructor.
+     * @param SwooleServer $handler
+     * @param int $clientId
+     */
+    public function __construct($handler, int $clientId)
     {
         $this->handler = $handler;
         $this->id = $clientId;

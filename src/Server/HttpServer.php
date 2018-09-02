@@ -13,10 +13,10 @@ class HttpServer extends Server
     protected function createHandler()
     {
         $flags = SWOOLE_TCP;
-        if ($this->settings->isSslEnabled()) {
+        if ($this->configuration->isSslEnabled()) {
             $flags |= SWOOLE_SSL;
         }
-        $settings = $this->settings->toArray();
+        $settings = $this->configuration->toArray();
         $handler = new SwooleHttpServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
         $handler->set($settings);
 

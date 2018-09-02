@@ -3,9 +3,9 @@
 namespace Igni\Network;
 
 use Igni\Exception\RuntimeException;
-use Igni\Network\Client\ClientManager;
 use Igni\Network\Exception\ServerException;
 use Igni\Network\Server\Configuration;
+use Igni\Network\Server\HandlerFactory;
 use Igni\Network\Server\Listener;
 use Igni\Network\Server\Listener\OnClose;
 use Igni\Network\Server\Listener\OnConnect;
@@ -13,7 +13,9 @@ use Igni\Network\Server\Listener\OnReceive;
 use Igni\Network\Server\Listener\OnShutdown;
 use Igni\Network\Server\Listener\OnStart;
 use Igni\Network\Server\ServerStats;
+use Igni\Network\Server\TcpHandlerFactory;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use SplQueue;
 use Swoole\Server as SwooleServer;
 
@@ -34,7 +36,7 @@ class Server
     /**
      * @var Configuration
      */
-    protected $settings;
+    protected $configuration;
 
     /**
      * @var SplQueue[]
@@ -47,24 +49,32 @@ class Server
     protected $logger;
 
     /**
-     * @var ClientManager
+     * @var HandlerFactory
      */
-    private $clientManager;
+    protected $handlerFactory;
+
+    /**
+     * @var Client[]
+     */
+    private $clients = [];
 
     /**
      * @var bool
      */
     private $started = false;
 
-    public function __construct(Configuration $settings = null)
-    {
+    public function __construct(
+        Configuration $settings = null,
+        LoggerInterface $logger = null,
+        HandlerFactory $handlerFactory = null
+    ) {
         if (!extension_loaded(self::SWOOLE_EXT_NAME)) {
             throw new RuntimeException('Swoole extenstion is missing, please install it and try again.');
         }
 
-        $this->settings = $settings ?? new Configuration();
-        $this->logger = $this->settings->getLogger();
-        $this->clientManager = new ClientManager();
+        $this->handlerFactory = $handlerFactory ?? new TcpHandlerFactory();
+        $this->configuration = $settings ?? new Configuration();
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
@@ -72,14 +82,14 @@ class Server
      *
      * @return Configuration
      */
-    public function getSettings(): Configuration
+    public function getConfiguration(): Configuration
     {
-        return $this->settings;
+        return $this->configuration;
     }
 
-    public function getClientManager(): ClientManager
+    public function getClient(int $id): Client
     {
-        return $this->clientManager;
+        return $this->clients[$id];
     }
 
     /**
@@ -130,25 +140,9 @@ class Server
         return new ServerStats($this->handler->stats());
     }
 
-    /**
-     * @return SwooleServer
-     */
-    protected function createHandler()
-    {
-        $flags = SWOOLE_TCP;
-        if ($this->settings->isSslEnabled()) {
-            $flags |= SWOOLE_SSL;
-        }
-        $settings = $this->settings->toArray();
-        $handler = new SwooleServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
-        $handler->set($settings);
-
-        return $handler;
-    }
-
     public function start(): void
     {
-        $this->handler = $this->createHandler();
+        $this->handler = $this->handlerFactory->createHandler($this->configuration);
         $this->createListeners();
         $this->handler->start();
         $this->started = true;
@@ -172,19 +166,29 @@ class Server
         $this->createOnReceiveListener();
     }
 
+    private function createClient($handler, int $clientId): Client
+    {
+        return $this->clients[$clientId] = new Client($handler, $clientId);
+    }
+
+    private function destroyClient(int $clientId): void
+    {
+        unset($this->clients[$clientId]);
+    }
+
     protected function createOnConnectListener(): void
     {
         $this->handler->on('Connect', function($handler, int $clientId) {
-            $this->clientManager->createClient($handler, $clientId);
+            $this->createClient($handler, $clientId);
 
-            if (!isset($this->listeners[OnClose::class])) {
+            if (!isset($this->listeners[OnConnect::class])) {
                 return;
             }
 
             $queue = clone $this->listeners[OnConnect::class];
             /** @var OnConnect $listener */
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
-                $listener->onConnect($this, $this->clientManager->getClient($clientId));
+                $listener->onConnect($this, $this->getClient($clientId));
             }
         });
     }
@@ -197,11 +201,11 @@ class Server
                 $queue = clone $this->listeners[OnClose::class];
                 /** @var OnClose $listener */
                 while (!$queue->isEmpty() && $listener = $queue->pop()) {
-                    $listener->onClose($this, $this->clientManager->getClient($clientId));
+                    $listener->onClose($this, $this->getClient($clientId));
                 }
             }
 
-            $this->clientManager->removeClient($clientId);
+            $this->destroyClient($clientId);
         });
     }
 
