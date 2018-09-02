@@ -20,5 +20,10 @@ class ConfigurationException extends InvalidArgumentException implements Network
     {
         return new self("Ssl key file {$keyFile} does not exist or could not be read.");
     }
+
+    public static function forUnavailablePidFile($pidFile): self
+    {
+        return new self("Pid file is not writable {$pidFile}");
+    }
 }
 

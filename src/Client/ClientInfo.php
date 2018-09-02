@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network\Server;
+namespace Igni\Network\Client;
 
 /**
  * Value class for aggregating client statistics.
  *
  * @package Igni\Http\Server
  */
-class ClientStats
+class ClientInfo
 {
     private $stats;
 

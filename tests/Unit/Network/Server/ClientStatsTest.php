@@ -2,19 +2,19 @@
 
 namespace Igni\Tests\Functional\Network\Server;
 
-use Igni\Network\Server\ClientStats;
+use Igni\Network\Client\ClientInfo;
 use PHPUnit\Framework\TestCase;
 
 final class ClientStatsTest extends TestCase
 {
     public function testCanInstantiate(): void
     {
-        self::assertInstanceOf(ClientStats::class, new ClientStats([]));
+        self::assertInstanceOf(ClientInfo::class, new ClientInfo([]));
     }
 
     public function testGetPort(): void
     {
-        $stats = new ClientStats([
+        $stats = new ClientInfo([
             'remote_port' => 80
         ]);
 
@@ -23,7 +23,7 @@ final class ClientStatsTest extends TestCase
 
     public function testGetConnectionTime(): void
     {
-        $stats = new ClientStats([
+        $stats = new ClientInfo([
             'connect_time' => 180
         ]);
 
@@ -32,7 +32,7 @@ final class ClientStatsTest extends TestCase
 
     public function testGetIp(): void
     {
-        $stats = new ClientStats([
+        $stats = new ClientInfo([
             'remote_ip' => '0.0.0.0'
         ]);
 

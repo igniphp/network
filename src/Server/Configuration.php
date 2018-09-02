@@ -63,11 +63,21 @@ class Configuration
      * @param string $address
      * @param int $port
      */
-    public function __construct(string $address = self::DEFAULT_ADDRESS, int $port = self::DEFAULT_PORT)
+    public function __construct(int $port = self::DEFAULT_PORT, string $address = self::DEFAULT_ADDRESS)
     {
         $this->settings['address'] = $address;
         $this->settings['port'] = $port;
         $this->logger = new NullLogger();
+    }
+
+    public function getPort(): int
+    {
+        return $this->settings['port'];
+    }
+
+    public function getAddress(): string
+    {
+        return $this->settings['address'];
     }
 
     /**
@@ -191,6 +201,10 @@ class Configuration
      */
     public function enableDaemon(string $pidFile): void
     {
+        if (!is_writable($pidFile) && !is_writable(dirname($pidFile))) {
+            throw ConfigurationException::forUnavailablePidFile($pidFile);
+        }
+
         $this->settings += [
             'daemonize' => true,
             'pid_file' => $pidFile,

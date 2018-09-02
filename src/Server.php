@@ -3,16 +3,18 @@
 namespace Igni\Network;
 
 use Igni\Exception\RuntimeException;
-use Igni\Network\Server\ClientStats;
-use Igni\Network\Server\OnConnect;
-use Igni\Network\Server\OnShutdown;
-use Igni\Network\Server\OnStart;
-use Igni\Network\Server\ServerStats;
+use Igni\Network\Client\ClientManager;
+use Igni\Network\Exception\ServerException;
 use Igni\Network\Server\Configuration;
 use Igni\Network\Server\Listener;
-use Igni\Network\Server\OnClose;
+use Igni\Network\Server\Listener\OnClose;
+use Igni\Network\Server\Listener\OnConnect;
+use Igni\Network\Server\Listener\OnReceive;
+use Igni\Network\Server\Listener\OnShutdown;
+use Igni\Network\Server\Listener\OnStart;
+use Igni\Network\Server\ServerStats;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
+use SplQueue;
 use Swoole\Server as SwooleServer;
 
 /**
@@ -23,8 +25,6 @@ use Swoole\Server as SwooleServer;
 class Server
 {
     private const SWOOLE_EXT_NAME = 'swoole';
-
-    private $testMode = false;
 
     /**
      * @var SwooleServer|null
@@ -37,7 +37,7 @@ class Server
     protected $settings;
 
     /**
-     * @var Listener[]
+     * @var SplQueue[]
      */
     protected $listeners = [];
 
@@ -46,14 +46,25 @@ class Server
      */
     protected $logger;
 
+    /**
+     * @var ClientManager
+     */
+    private $clientManager;
+
+    /**
+     * @var bool
+     */
+    private $started = false;
+
     public function __construct(Configuration $settings = null)
     {
         if (!extension_loaded(self::SWOOLE_EXT_NAME)) {
             throw new RuntimeException('Swoole extenstion is missing, please install it and try again.');
         }
 
-        $this->logger = $logger ?? new NullLogger();
         $this->settings = $settings ?? new Configuration();
+        $this->logger = $this->settings->getLogger();
+        $this->clientManager = new ClientManager();
     }
 
     /**
@@ -66,6 +77,11 @@ class Server
         return $this->settings;
     }
 
+    public function getClientManager(): ClientManager
+    {
+        return $this->clientManager;
+    }
+
     /**
      * Adds listener that is attached to server once it is run.
      *
@@ -73,9 +89,20 @@ class Server
      */
     public function addListener(Listener $listener): void
     {
-        $this->listeners[] = $listener;
-        if ($this->handler !== null) {
-            $this->attachListener($listener);
+        $this->addListenerByType($listener, OnStart::class);
+        $this->addListenerByType($listener, OnClose::class);
+        $this->addListenerByType($listener, OnConnect::class);
+        $this->addListenerByType($listener, OnShutdown::class);
+        $this->addListenerByType($listener, OnReceive::class);
+    }
+
+    protected function addListenerByType(Listener $listener, string $type): void
+    {
+        if ($listener instanceof $type) {
+            if (!isset($this->listeners[$type])) {
+                $this->listeners[$type] = new SplQueue();
+            }
+            $this->listeners[$type]->push($listener);
         }
     }
 
@@ -91,112 +118,137 @@ class Server
     }
 
     /**
-     * Returns information about client.
-     *
-     * @param int $clientId
-     * @return ClientStats
-     */
-    public function getClientStats(int $clientId): ClientStats
-    {
-        return new ClientStats($this->handler->getClientInfo($clientId));
-    }
-
-    /**
      * Returns information about server.
      *
      * @return ServerStats
      */
     public function getServerStats(): ServerStats
     {
+        if (!$this->started) {
+            throw ServerException::forMethodCallOnIdleServer(__METHOD__);
+        }
         return new ServerStats($this->handler->stats());
     }
 
-    public function enableTestMode(): void
-    {
-        $this->testMode = true;
-    }
-
     /**
-     * Starts the server.
+     * @return SwooleServer
      */
-    public function start(): void
+    protected function createHandler()
     {
-        $flags = SWOOLE_SOCK_TCP;
-
+        $flags = SWOOLE_TCP;
         if ($this->settings->isSslEnabled()) {
             $flags |= SWOOLE_SSL;
         }
+        $settings = $this->settings->toArray();
+        $handler = new SwooleServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
+        $handler->set($settings);
 
-        $settings = $this->settings->getSettings();
-
-        if (!$this->testMode) {
-            $this->handler = new SwooleServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
-        }
-
-        $this->handler->set($settings);
-
-        // Start the server.
-        foreach ($this->listeners as $listener) {
-            $this->attachListener($listener);
-        }
-        $this->handler->start();
+        return $handler;
     }
 
-    /**
-     * Stops the server.
-     */
+    public function start(): void
+    {
+        $this->handler = $this->createHandler();
+        $this->createListeners();
+        $this->handler->start();
+        $this->started = true;
+    }
+
     public function stop(): void
     {
         if ($this->handler !== null) {
             $this->handler->shutdown();
             $this->handler = null;
         }
+        $this->started = false;
     }
 
-    protected function attachListener(Listener $listener): void
+    protected function createListeners(): void
     {
-        if ($listener instanceof OnConnect) {
-            $this->attachOnConnectListener($listener);
-        }
-
-        if ($listener instanceof OnClose) {
-            $this->attachOnCloseListener($listener);
-        }
-
-        if ($listener instanceof OnShutdown) {
-            $this->attachOnShutdownListener($listener);
-        }
-
-        if ($listener instanceof OnStart) {
-            $this->attachOnStartListener($listener);
-        }
+        $this->createOnConnectListener();
+        $this->createOnCloseListener();
+        $this->createOnShutdownListener();
+        $this->createOnStartListener();
+        $this->createOnReceiveListener();
     }
 
-    protected function attachOnConnectListener(OnConnect $listener): void
+    protected function createOnConnectListener(): void
     {
-        $this->handler->on('Connect', function($handler, $clientId) use ($listener) {
-            $listener->onConnect($this, $clientId);
+        $this->handler->on('Connect', function($handler, int $clientId) {
+            $this->clientManager->createClient($handler, $clientId);
+
+            if (!isset($this->listeners[OnClose::class])) {
+                return;
+            }
+
+            $queue = clone $this->listeners[OnConnect::class];
+            /** @var OnConnect $listener */
+            while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                $listener->onConnect($this, $this->clientManager->getClient($clientId));
+            }
         });
     }
 
-    protected function attachOnCloseListener(OnClose $listener): void
+    protected function createOnCloseListener(): void
     {
-        $this->handler->on('Close', function($handler, $clientId) use ($listener) {
-            $listener->onClose($this, $clientId);
+        $this->handler->on('Close', function($handler, int $clientId) {
+            if (isset($this->listeners[OnClose::class])) {
+
+                $queue = clone $this->listeners[OnClose::class];
+                /** @var OnClose $listener */
+                while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                    $listener->onClose($this, $this->clientManager->getClient($clientId));
+                }
+            }
+
+            $this->clientManager->removeClient($clientId);
         });
     }
 
-    protected function attachOnShutdownListener(OnShutdown $listener): void
+    protected function createOnShutdownListener(): void
     {
-        $this->handler->on('Shutdown', function() use ($listener) {
-            $listener->onShutdown($this);
+        $this->handler->on('Shutdown', function() {
+            if (!isset($this->listeners[OnShutdown::class])) {
+                return;
+            }
+
+            $queue = clone $this->listeners[OnShutdown::class];
+
+            /** @var OnShutdown $listener */
+            while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                $listener->onShutdown($this);
+            }
         });
     }
 
-    protected function attachOnStartListener(OnStart $listener): void
+    protected function createOnStartListener(): void
     {
-        $this->handler->on('Start', function() use ($listener) {
-            $listener->onStart($this);
+        $this->handler->on('Start', function() {
+            if (!isset($this->listeners[OnStart::class])) {
+                return;
+            }
+
+            $queue = clone $this->listeners[OnStart::class];
+            /** @var OnStart $listener */
+            while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                $listener->onStart($this);
+            }
+        });
+    }
+
+    protected function createOnReceiveListener(): void
+    {
+        $this->handler->on('Receive', function ($handler, int $clientId, int $fromId, string $data) {
+            if (!isset($this->listeners[OnReceive::class])) {
+                return;
+            }
+
+            $queue = clone $this->listeners[OnReceive::class];
+
+            /** @var OnReceive $listener */
+            while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                $listener->onReceive($this, $this->clientManager->getClient($clientId), $data);
+            }
         });
     }
 }
