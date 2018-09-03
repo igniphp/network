@@ -24,7 +24,7 @@ use Swoole\Server as SwooleServer;
  *
  * @package Igni\Http
  */
-class Server
+class Server implements HandlerFactory
 {
     private const SWOOLE_EXT_NAME = 'swoole';
 
@@ -72,7 +72,7 @@ class Server
             throw new RuntimeException('Swoole extenstion is missing, please install it and try again.');
         }
 
-        $this->handlerFactory = $handlerFactory ?? new TcpHandlerFactory();
+        $this->handlerFactory = $handlerFactory ?? $this;
         $this->configuration = $settings ?? new Configuration();
         $this->logger = $logger ?? new NullLogger();
     }
@@ -124,7 +124,16 @@ class Server
      */
     public function hasListener(Listener $listener): bool
     {
-        return in_array($listener, $this->listeners);
+        /** @var SplQueue $listenerCollection */
+        foreach ($this->listeners as $listenerCollection) {
+            foreach ($listenerCollection as $current) {
+                if ($current === $listener) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -138,6 +147,19 @@ class Server
             throw ServerException::forMethodCallOnIdleServer(__METHOD__);
         }
         return new ServerStats($this->handler->stats());
+    }
+
+    public function createHandler(Configuration $configuration)
+    {
+        $flags = SWOOLE_TCP;
+        if ($configuration->isSslEnabled()) {
+            $flags |= SWOOLE_SSL;
+        }
+        $settings = $configuration->toArray();
+        $handler = new SwooleServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
+        $handler->set($settings);
+
+        return $handler;
     }
 
     public function start(): void
@@ -251,7 +273,7 @@ class Server
 
             /** @var OnReceive $listener */
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
-                $listener->onReceive($this, $this->clientManager->getClient($clientId), $data);
+                $listener->onReceive($this, $this->getClient($clientId), $data);
             }
         });
     }

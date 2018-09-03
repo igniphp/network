@@ -30,6 +30,11 @@ class Client
         $this->id = $clientId;
     }
 
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
     public function getInfo(): ClientInfo
     {
         return new ClientInfo($this->handler->getClientInfo($this->id));
