@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "phpstan": "vendor/bin/phpstan analyse src --level=0",
-    "coverage": "vendor/bin/phpunit --coverage-html ../coverage"
+    "coverage": "vendor/bin/phpunit --coverage-html ./coverage"
   },
   "require": {
     "ext-swoole": ">=4.0.0",

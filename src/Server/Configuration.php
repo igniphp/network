@@ -53,11 +53,6 @@ class Configuration
     private $settings = [];
 
     /**
-     * @var LoggerInterface
-     */
-    private $logger;
-
-    /**
      * HttpConfiguration constructor.
      *
      * @param string $address
@@ -67,7 +62,6 @@ class Configuration
     {
         $this->settings['address'] = $address;
         $this->settings['port'] = $port;
-        $this->logger = new NullLogger();
     }
 
     public function getPort(): int
@@ -152,24 +146,6 @@ class Configuration
     public function setMaxRequests(int $max = 0): void
     {
         $this->settings['max_request'] = $max;
-    }
-
-    /**
-     * Sets PSR Logger
-     * @param LoggerInterface $logger
-     */
-    public function setLogger(LoggerInterface $logger): void
-    {
-        $this->logger = $logger;
-    }
-
-    /**
-     * Gets psr logger
-     * @return LoggerInterface
-     */
-    public function getLogger(): LoggerInterface
-    {
-        return $this->logger;
     }
 
     /**

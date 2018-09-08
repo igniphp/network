@@ -1,11 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network\Http;
+namespace Igni\Network\Server;
 
+use Igni\Network\Http\ServerRequest;
 use Igni\Network\Server;
-use Igni\Network\Server\Configuration;
-use Igni\Network\Server\HandlerFactory;
-use Igni\Network\Server\Listener;
 use Igni\Network\Server\Listener\OnRequest;
 use Psr\Log\LoggerInterface;
 use Swoole\Http\Request as SwooleHttpRequest;
@@ -56,7 +54,7 @@ class HttpServer extends Server implements HandlerFactory
         SwooleHttpResponse $response,
         OnRequest $listener
     ): void {
-        $psrRequest = ServerRequest::fromSwooleRequest($request);
+        $psrRequest = ServerRequest::fromSwoole($request);
         $psrResponse = $listener->onRequest($psrRequest);
 
         // Set headers

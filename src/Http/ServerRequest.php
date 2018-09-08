@@ -6,12 +6,9 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Swoole\Http\Request as SwooleHttRequest;
-use function Zend\Diactoros\marshalHeadersFromSapi;
-use Zend\Diactoros\ServerRequestFactory;
+use Throwable;
 
-use function Zend\Diactoros\marshalMethodFromSapi;
-use function Zend\Diactoros\marshalProtocolVersionFromSapi;
-use function Zend\Diactoros\marshalUriFromSapi;
+use function Zend\Diactoros\marshalHeadersFromSapi;
 use function Zend\Diactoros\normalizeUploadedFiles;
 
 class ServerRequest extends Request implements ServerRequestInterface
@@ -59,12 +56,12 @@ class ServerRequest extends Request implements ServerRequestInterface
      * @throws \InvalidArgumentException for any invalid value.
      */
     public function __construct(
-        string $method = self::METHOD_GET,
         string $uri = null,
-        array $serverParams = [],
+        string $method = self::METHOD_GET,
         $body = 'php://input',
+        array $headers = [],
         array $uploadedFiles = [],
-        array $headers = []
+        array $serverParams = []
     ) {
         parent::__construct($uri, $method, $body, $headers);
         $this->validateUploadedFiles($uploadedFiles);
@@ -238,30 +235,34 @@ class ServerRequest extends Request implements ServerRequestInterface
     public static function fromGlobals(): ServerRequest
     {
         $instance = new self(
-            $_SERVER['REQUEST_METHOD'] ?? 'GET',
             $_SERVER['REQUEST_URI'] ?? '',
-            $_SERVER,
+            $_SERVER['REQUEST_METHOD'] ?? 'GET',
             'php://input',
+            marshalHeadersFromSapi($_SERVER),
             normalizeUploadedFiles($_FILES),
-            marshalHeadersFromSapi($_SERVER)
+            $_SERVER
         );
 
         return $instance;
     }
 
     /**
-     * @param SwooleHttpRequest $request
+     * @param SwooleHttRequest $request
      * @return ServerRequest
      */
-    public static function fromSwooleRequest(SwooleHttpRequest $request): ServerRequest
+    public static function fromSwoole(SwooleHttRequest $request): ServerRequest
     {
+        $serverParams  = $request->server ?? [];
         if (isset($request->server['query_string'])) {
             $uri = $request->server['request_uri'] . '?' . $request->server['query_string'];
         } else {
             $uri = $request->server['request_uri'];
         }
 
-        // Parse headers
+        // Normalize server params
+        $serverParams = array_change_key_case($serverParams, CASE_UPPER);
+
+        // Normalize headers
         $headers = [];
         if ($request->header) {
             foreach ($request->header as $name => $value) {
@@ -274,7 +275,7 @@ class ServerRequest extends Request implements ServerRequestInterface
 
         try {
             $body = $request->rawContent();
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $body = '';
         }
 
@@ -283,17 +284,12 @@ class ServerRequest extends Request implements ServerRequestInterface
         }
 
         return new ServerRequest(
-            $request->server ?? [],
-            ServerRequestFactory::normalizeFiles($request->files ?? []) ?? [],
             $uri,
             $request->server['request_method'] ?? 'GET',
             $body,
-            $headers
+            $headers,
+            normalizeUploadedFiles($request->files ?? []) ?? [],
+            $serverParams
         );
-    }
-
-    public static function fromUri($uri, $method = self::METHOD_GET, string $body = ''): ServerRequest
-    {
-        return new ServerRequest([], [], $uri, $method, $body);
     }
 }

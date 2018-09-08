@@ -2,7 +2,7 @@
 
 namespace Igni\Network\Http;
 
-use InvalidArgumentException;
+use Igni\Network\Exception\InvalidArgumentException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
@@ -34,8 +34,6 @@ class Request implements RequestInterface
     private $stream;
 
     /**
-     * Request constructor.
-     *
      * @param null|string $uri URI for the request, if any.
      * @param string $method HTTP method for the request, if any.
      * @param string|resource|StreamInterface $body Output body, if any.

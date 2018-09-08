@@ -62,12 +62,11 @@ class Client
     public function send(string $data = null): void
     {
         if (!$this->handler->send($this->id, $data)) {
-            echo "Failed to send the response";
             throw ClientException::forSendFailure($this, $data);
         }
     }
 
-    public function protect()
+    public function protect(): void
     {
         $this->handler->protect($this->id);
     }
@@ -94,6 +93,6 @@ class Client
 
     public function __toString(): string
     {
-        return self::class . "[{$this->id}]@{$this->getInfo()->getIp()}";
+        return self::class . "[{$this->id}]";
     }
 }

@@ -2,11 +2,18 @@
 
 namespace Igni\Network\Http;
 
-use Igni\Exception\InvalidArgumentException;
+use DOMDocument;
 use Igni\Exception\RuntimeException;
+use Igni\Network\Exception\InvalidArgumentException;
+use JsonSerializable;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
+use SimpleXMLElement;
 use Zend\Diactoros\MessageTrait;
+
+use function is_array;
+use function is_string;
+use function json_encode;
 
 /**
  * PSR-7 implementation of ResponseInterface.
@@ -253,13 +260,13 @@ class Response implements ResponseInterface
      * @return Response
      * @throws InvalidArgumentException
      */
-    public static function fromJson($data, int $status = self::HTTP_OK, array $headers = [])
+    public static function asJson($data, int $status = self::HTTP_OK, array $headers = [])
     {
-        if (! $data instanceof \JsonSerializable && ! is_array($data)) {
+        if (! $data instanceof JsonSerializable && !is_array($data)) {
             throw new InvalidArgumentException('Invalid $data provided, method expects array or instance of \JsonSerializable.');
         }
 
-        $headers['Content-Property'] = 'application/json';
+        $headers['Content-Type'] = 'application/json';
 
         $body = json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
         return new Response($body, $status, $headers);
@@ -273,9 +280,9 @@ class Response implements ResponseInterface
      * @param array $headers
      * @return Response
      */
-    public static function fromText(string $text, int $status = self::HTTP_OK, array $headers = []): Response
+    public static function asText(string $text, int $status = self::HTTP_OK, array $headers = []): Response
     {
-        $headers['Content-Property'] = 'text/plain';
+        $headers['Content-Type'] = 'text/plain';
         return new Response($text, $status, $headers);
     }
 
@@ -287,26 +294,26 @@ class Response implements ResponseInterface
      * @param array $headers
      * @return Response
      */
-    public static function fromHtml(string $html, int $status = self::HTTP_OK, array $headers = [])
+    public static function asHtml(string $html, int $status = self::HTTP_OK, array $headers = [])
     {
-        $headers['Content-Property'] = 'text/html';
+        $headers['Content-Type'] = 'text/html';
         return new Response($html, $status, $headers);
     }
 
     /**
      * Factories xml response.
      *
-     * @param \SimpleXMLElement|\DOMDocument|string $data
+     * @param SimpleXMLElement|DOMDocument|string $data
      * @param int $status
      * @param array $headers
      * @return Response
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
-    public static function fromXml($data, int $status = self::HTTP_OK, array $headers = [])
+    public static function asXml($data, int $status = self::HTTP_OK, array $headers = [])
     {
-        if ($data instanceof \SimpleXMLElement) {
+        if ($data instanceof SimpleXMLElement) {
             $body = $data->asXML();
-        } elseif ($data instanceof \DOMDocument) {
+        } elseif ($data instanceof DOMDocument) {
             $body = $data->saveXML();
         } elseif (is_string($data)) {
             $body = $data;
@@ -314,7 +321,7 @@ class Response implements ResponseInterface
             throw new InvalidArgumentException('Invalid $data provided, method expects valid string or instance of \SimpleXMLElement, \DOMDocument');
         }
 
-        $headers['Content-Property'] = 'text/xml';
+        $headers['Content-Type'] = 'text/xml';
         return new Response($body, $status, $headers);
     }
 
@@ -327,6 +334,7 @@ class Response implements ResponseInterface
      */
     public static function empty(int $status = self::HTTP_OK, array $headers = [])
     {
+        $headers['Content-Type'] = 'text/plain';
         return new Response('', $status, $headers);
     }
 }
