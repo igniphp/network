@@ -2,7 +2,6 @@
 
 namespace Igni\Network;
 
-use Igni\Exception\RuntimeException;
 use Igni\Network\Client\ClientInfo;
 use Igni\Network\Exception\ClientException;
 use Swoole\Server as SwooleServer;
@@ -19,11 +18,6 @@ class Client
      */
     private $handler;
 
-    /**
-     * Client constructor.
-     * @param SwooleServer $handler
-     * @param int $clientId
-     */
     public function __construct($handler, int $clientId)
     {
         $this->handler = $handler;
@@ -57,7 +51,7 @@ class Client
 
     /**
      * @param string $data
-     * @throws RuntimeException
+     * @throws ClientException
      */
     public function send(string $data = null): void
     {
@@ -71,9 +65,6 @@ class Client
         $this->handler->protect($this->id);
     }
 
-    /**
-     * @param string|null $data
-     */
     public function wait(string $data = null): void
     {
         if (!$this->handler->sendwait($this->id, $data)) {
