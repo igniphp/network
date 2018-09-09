@@ -222,10 +222,9 @@ final class ServerTest extends TestCase
 
     private function mockServer(&$listeners = []): Server
     {
-        $logger = Mockery::mock(LoggerInterface::class);
         $configuration = new Configuration();
         $handlerFactory = $this->mockHandlerFactory($configuration, $listeners);
 
-        return new Server($configuration, $logger, $handlerFactory);
+        return new Server($configuration, new NullLogger(), $handlerFactory);
     }
 }

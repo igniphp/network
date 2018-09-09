@@ -2,6 +2,7 @@
 
 namespace Igni\Network\Server;
 
+use Igni\Network\Http\Response;
 use Igni\Network\Http\ServerRequest;
 use Igni\Network\Server;
 use Igni\Network\Server\Listener\OnRequest;
@@ -9,6 +10,12 @@ use Psr\Log\LoggerInterface;
 use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
 use Swoole\Http\Server as SwooleHttpServer;
+
+use function explode;
+use function gzdeflate;
+use function implode;
+use function in_array;
+use function strtolower;
 
 class HttpServer extends Server implements HandlerFactory
 {
@@ -44,48 +51,47 @@ class HttpServer extends Server implements HandlerFactory
 
     protected function createOnRequestListener(): void
     {
-        $this->handler->on('Request', function($handler, int $clientId) {
+        /**  */
+        $this->handler->on('Request', function(SwooleHttpRequest $request, SwooleHttpResponse $response) {
+            $psrRequest = ServerRequest::fromSwoole($request);
+            $psrResponse = Response::empty();
 
+            $queue = clone $this->listeners[OnRequest::class];
+            /** @var OnRequest $listener */
+            while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                $psrResponse = $listener->onRequest($this->getClient($request->fd), $psrRequest, $psrResponse);
+            }
+
+            // Set headers
+            foreach ($psrResponse->getHeaders() as $name => $values) {
+                foreach ($values as $value) {
+                    $response->header($name, $value);
+                }
+            }
+
+            // Response body.
+            $body = $psrResponse->getBody()->getContents();
+
+            // Status code
+            $response->status($psrResponse->getStatusCode());
+
+            // Protect server software header.
+            $response->header('software-server', '');
+            $response->header('server', '');
+
+            // Support gzip/deflate encoding.
+            if ($psrRequest->hasHeader('accept-encoding')) {
+                $encoding = explode(',', strtolower(implode(',', $psrRequest->getHeader('accept-encoding'))));
+
+                if (in_array('gzip', $encoding, true)) {
+                    $response->gzip(1);
+                } elseif (in_array('deflate', $encoding, true)) {
+                    $response->header('content-encoding', 'deflate');
+                    $body = gzdeflate($body);
+                }
+            }
+
+            $response->end($body);
         });
-    }
-
-    private function normalizeRequest(
-        SwooleHttpRequest $request,
-        SwooleHttpResponse $response,
-        OnRequest $listener
-    ): void {
-        $psrRequest = ServerRequest::fromSwoole($request);
-        $psrResponse = $listener->onRequest($psrRequest);
-
-        // Set headers
-        foreach ($psrResponse->getHeaders() as $name => $values) {
-            foreach ($values as $value) {
-                $response->header($name, $value);
-            }
-        }
-
-        // Response body.
-        $body = $psrResponse->getBody()->getContents();
-
-        // Status code
-        $response->status($psrResponse->getStatusCode());
-
-        // Protect server software header.
-        $response->header('software-server', '');
-        $response->header('server', '');
-
-        // Support gzip/deflate encoding.
-        if ($psrRequest->hasHeader('accept-encoding')) {
-            $encoding = explode(',', strtolower(implode(',', $psrRequest->getHeader('accept-encoding'))));
-
-            if (in_array('gzip', $encoding, true)) {
-                $response->gzip(1);
-            } elseif (in_array('deflate', $encoding, true)) {
-                $response->header('content-encoding', 'deflate');
-                $body = gzdeflate($body);
-            }
-        }
-
-        $response->end($body);
     }
 }

@@ -45,7 +45,7 @@ final class LogWriterTest extends TestCase
         $server
             ->shouldReceive('getConfiguration')
             ->andReturn(new Server\Configuration());
-        self::expectOutputRegex('/\[\d{4}-\d{2}-\d{2} \d{2}\:\d{2}\:\d{2}\]\[ALERT\] \- Server is listening .*/');
+        self::expectOutputRegex('/\[\d{4}-\d{2}-\d{2} \d{2}\:\d{2}\:\d{2}\]\[INFO\] \- Server is listening .*/');
         $writer = new LogWriter(new Logger());
         $writer->onStart($server);
     }

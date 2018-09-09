@@ -13,7 +13,6 @@ use Igni\Network\Server\Listener\OnReceive;
 use Igni\Network\Server\Listener\OnShutdown;
 use Igni\Network\Server\Listener\OnStart;
 use Igni\Network\Server\ServerStats;
-use Igni\Network\Server\TcpHandlerFactory;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use SplQueue;
@@ -74,7 +73,7 @@ class Server implements HandlerFactory
 
         $this->handlerFactory = $handlerFactory ?? $this;
         $this->configuration = $settings ?? new Configuration();
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger = new LogWriter($logger);
     }
 
     /**
@@ -164,6 +163,7 @@ class Server implements HandlerFactory
 
     public function start(): void
     {
+        $this->addListener($this->logger);
         $this->handler = $this->handlerFactory->createHandler($this->configuration);
         $this->createListeners();
         $this->handler->start();

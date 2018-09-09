@@ -40,7 +40,7 @@ class LogWriter implements OnClose, OnConnect, OnShutdown, OnStart, LoggerInterf
 
     public function onStart(Server $server): void
     {
-        $this->alert(
+        $this->info(
             'Server is listening {address}:{port}',
             ['port' => $server->getConfiguration()->getPort(), 'address' => $server->getConfiguration()->getAddress()]
         );
