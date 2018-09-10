@@ -12,6 +12,7 @@ use Closure;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use stdClass;
 
 final class ServerTest extends TestCase
 {
@@ -198,6 +199,37 @@ final class ServerTest extends TestCase
         self::assertSame([Server\Listener\OnReceive::class], array_keys($listeners));
         self::assertCount(1, $listeners[Server\Listener\OnReceive::class]);
         self::assertTrue($server->hasListener($onReceive));
+    }
+
+    public function testStartWithSsl(): void
+    {
+        $settings = new Configuration();
+        $settings->enableSsl(FIXTURES_DIR . '/bob.crt', FIXTURES_DIR . '/bob.key');
+        $handlerFactoryMock = Mockery::mock(HandlerFactory::class);
+
+        $handlerMock = Mockery::mock(stdClass::class);
+        $handlerMock->shouldReceive('start');
+        $handlerMock->shouldReceive('set')
+            ->withArgs(function (array $config) {
+                self::assertSame(
+                    [
+                        'address' => '0.0.0.0',
+                        'port' => 80,
+                        'ssl_cert_file' => 'a',
+                        'ssl_key_file' => 'b',
+                    ],
+                    $config
+                );
+
+                return true;
+            });
+        $handlerMock->shouldReceive('on');
+
+        $handlerFactoryMock->shouldReceive('createHandler')
+            ->andReturn($handlerMock);
+
+        $server = new Server($settings, new NullLogger(), $handlerFactoryMock);
+        self::assertNull($server->start());
     }
 
     private function mockHandlerFactory(Configuration $configuration, &$listeners = []): HandlerFactory

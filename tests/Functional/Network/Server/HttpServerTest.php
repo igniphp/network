@@ -5,6 +5,7 @@ namespace Igni\Tests\Functional\Network\Server;
 use Closure;
 use Igni\Network\Client;
 use Igni\Network\Http\Response;
+use Igni\Network\Http\Stream;
 use Igni\Network\Server\Configuration;
 use Igni\Network\Server\HandlerFactory;
 use Igni\Network\Server\HttpServer;
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\NullLogger;
+use stdClass;
 use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
 
@@ -56,9 +58,62 @@ final class HttpServerTest extends TestCase
         $listeners['Close']($server, 1);
     }
 
+    public function testGzipSupport(): void
+    {
+        $server = $this->mockServer($listeners);
+
+        $content = Mockery::mock(Stream::class);
+        $content
+            ->shouldReceive('getContents')
+            ->andReturn('test gzip');
+
+        $psrResponse = Mockery::mock(ResponseInterface::class);
+        $psrResponse
+            ->shouldReceive('getHeaders')
+            ->andReturn([]);
+        $psrResponse
+            ->shouldReceive('getBody')
+            ->andReturn($content);
+        $psrResponse
+            ->shouldReceive('getStatusCode')
+            ->andReturn(200);
+
+        $onRequestMock = Mockery::mock(OnRequest::class);
+        $onRequestMock
+            ->shouldReceive('onRequest')
+            ->andReturn($psrResponse);
+
+        $server->addListener($onRequestMock);
+        $server->start();
+
+        $swooleRequestMock = Mockery::mock(SwooleHttpRequest::class);
+        $swooleRequestMock->fd = 1;
+        $swooleRequestMock->header = ['accept-encoding' => 'gzip, deflate'];
+
+        $swooleResponseMock = Mockery::mock(SwooleHttpResponse::class);
+        $swooleResponseMock
+            ->shouldReceive('status')
+            ->withArgs([200]);
+        $swooleResponseMock
+            ->shouldReceive('header');
+        $swooleResponseMock
+            ->shouldReceive('end')
+            ->withArgs(function(string $result) {
+                self::assertSame('test gzip', $result);
+                return true;
+            });
+        $swooleResponseMock
+            ->shouldReceive('gzip')
+            ->withArgs([1]);
+
+        $listeners['Connect']($server, 1);
+        $listeners['Request']($swooleRequestMock, $swooleResponseMock);
+        $listeners['Close']($server, 1);
+    }
+
     private function mockHandlerFactory(Configuration $configuration, &$listeners = []): HandlerFactory
     {
-        $handler = Mockery::mock(\stdClass::class);
+        $handler = Mockery::mock(stdClass::class);
         $handler->shouldReceive('on')
             ->withArgs(function(string $type, Closure $listener) use(&$listeners) {
                 $listeners[$type] = $listener;

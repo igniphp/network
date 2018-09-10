@@ -6,10 +6,14 @@ use Igni\Exception\InvalidArgumentException;
 use Psr\Http\Message\StreamInterface;
 use Zend\Diactoros\Stream as BaseStream;
 
+use function strpos;
+use function is_string;
+use function is_resource;
+
 /**
  * @package Igni\Http
  */
-final class Stream extends BaseStream
+class Stream extends BaseStream
 {
     public static function fromString(string $content): self
     {
