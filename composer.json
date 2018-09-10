@@ -4,6 +4,7 @@
   "keywords": [
     "swoole",
     "http",
+    "server",
     "psr-7",
     "psr-15"
   ],

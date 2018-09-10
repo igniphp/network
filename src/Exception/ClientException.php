@@ -2,7 +2,7 @@
 
 namespace Igni\Network\Exception;
 
-use Igni\Network\Client;
+use Igni\Network\Server\Client;
 
 class ClientException extends ServerException implements NetworkException
 {

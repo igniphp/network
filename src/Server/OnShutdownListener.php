@@ -1,16 +1,15 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network\Server\Listener;
+namespace Igni\Network\Server;
 
 use Igni\Network\Server;
-use Igni\Network\Server\Listener;
 
 /**
  * The event happens when the server shuts down
  *
  * Before the shutdown happens all the client connections are closed.
  */
-interface OnShutdown extends Listener
+interface OnShutdownListener extends Listener
 {
     /**
      * Handles server's shutdown event.

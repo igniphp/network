@@ -2,13 +2,13 @@
 
 namespace Igni\Tests\Functional\Network;
 
-use Igni\Network\Client;
+use Closure;
 use Igni\Network\Exception\ServerException;
 use Igni\Network\Server;
+use Igni\Network\Server\Client;
 use Igni\Network\Server\Configuration;
 use Igni\Network\Server\HandlerFactory;
 use Mockery;
-use Closure;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -72,7 +72,7 @@ final class ServerTest extends TestCase
     public function testOnStartListener(): void
     {
         $server = $this->mockServer($listeners);
-        $onStart = Mockery::mock(Server\Listener\OnStart::class);
+        $onStart = Mockery::mock(Server\OnStartListener::class);
         $onStart
             ->shouldReceive('onStart')
             ->withArgs(function(Server $passed) use ($server) {
@@ -87,7 +87,7 @@ final class ServerTest extends TestCase
 
     public function testOnReceiveListener(): void
     {
-        $onReceive = Mockery::mock(Server\Listener\OnReceive::class);
+        $onReceive = Mockery::mock(Server\OnReceiveListener::class);
         $onReceive
             ->shouldReceive('onReceive')
             ->withArgs(function(Server $server, Client $client, string $data) {
@@ -109,7 +109,7 @@ final class ServerTest extends TestCase
     public function testOnConnectListener(): void
     {
         $server = $this->mockServer($listeners);
-        $onConnect = Mockery::mock(Server\Listener\OnConnect::class);
+        $onConnect = Mockery::mock(Server\OnConnectListener::class);
         $onConnect
             ->shouldReceive('onConnect')
             ->withArgs(function(Server $passed, Client $client) use ($server) {
@@ -126,7 +126,7 @@ final class ServerTest extends TestCase
     public function testOnShutdownListener(): void
     {
         $server = $this->mockServer($listeners);
-        $onShutdown = Mockery::mock(Server\Listener\OnShutdown::class);
+        $onShutdown = Mockery::mock(Server\OnShutdownListener::class);
         $onShutdown
             ->shouldReceive('onShutdown')
             ->withArgs(function(Server $passed) use ($server) {
@@ -142,7 +142,7 @@ final class ServerTest extends TestCase
     public function testOnCloseListener(): void
     {
         $server = $this->mockServer($listeners);
-        $onClose = Mockery::mock(Server\Listener\OnClose::class);
+        $onClose = Mockery::mock(Server\OnCloseListener::class);
         $onClose
             ->shouldReceive('onClose')
             ->withArgs(function(Server $passed, Client $client) use ($server) {
@@ -159,45 +159,45 @@ final class ServerTest extends TestCase
 
     public function testAddingListeners(): void
     {
-        $onStart = Mockery::mock(Server\Listener\OnStart::class);
+        $onStart = Mockery::mock(Server\OnStartListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onStart);
         $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\Listener\OnStart::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\Listener\OnStart::class]);
+        self::assertSame([Server\OnStartListener::class], array_keys($listeners));
+        self::assertCount(1, $listeners[Server\OnStartListener::class]);
         self::assertTrue($server->hasListener($onStart));
 
-        $onShutdown = Mockery::mock(Server\Listener\OnShutdown::class);
+        $onShutdown = Mockery::mock(Server\OnShutdownListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onShutdown);
         $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\Listener\OnShutdown::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\Listener\OnShutdown::class]);
+        self::assertSame([Server\OnShutdownListener::class], array_keys($listeners));
+        self::assertCount(1, $listeners[Server\OnShutdownListener::class]);
         self::assertTrue($server->hasListener($onShutdown));
         self::assertFalse($server->hasListener($onStart));
 
-        $onClose = Mockery::mock(Server\Listener\OnClose::class);
+        $onClose = Mockery::mock(Server\OnCloseListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onClose);
         $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\Listener\OnClose::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\Listener\OnClose::class]);
+        self::assertSame([Server\OnCloseListener::class], array_keys($listeners));
+        self::assertCount(1, $listeners[Server\OnCloseListener::class]);
         self::assertTrue($server->hasListener($onClose));
 
-        $onConnect = Mockery::mock(Server\Listener\OnConnect::class);
+        $onConnect = Mockery::mock(Server\OnConnectListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onConnect);
         $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\Listener\OnConnect::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\Listener\OnConnect::class]);
+        self::assertSame([Server\OnConnectListener::class], array_keys($listeners));
+        self::assertCount(1, $listeners[Server\OnConnectListener::class]);
         self::assertTrue($server->hasListener($onConnect));
 
-        $onReceive = Mockery::mock(Server\Listener\OnReceive::class);
+        $onReceive = Mockery::mock(Server\OnReceiveListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onReceive);
         $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\Listener\OnReceive::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\Listener\OnReceive::class]);
+        self::assertSame([Server\OnReceiveListener::class], array_keys($listeners));
+        self::assertCount(1, $listeners[Server\OnReceiveListener::class]);
         self::assertTrue($server->hasListener($onReceive));
     }
 

@@ -1,8 +1,7 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network;
+namespace Igni\Network\Server;
 
-use Igni\Network\Client\ClientInfo;
 use Igni\Network\Exception\ClientException;
 use Swoole\Server as SwooleServer;
 

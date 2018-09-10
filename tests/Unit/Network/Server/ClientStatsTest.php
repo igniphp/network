@@ -2,7 +2,7 @@
 
 namespace Igni\Tests\Functional\Network\Server;
 
-use Igni\Network\Client\ClientInfo;
+use Igni\Network\Server\ClientInfo;
 use PHPUnit\Framework\TestCase;
 
 final class ClientStatsTest extends TestCase

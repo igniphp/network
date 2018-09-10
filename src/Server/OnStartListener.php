@@ -1,14 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network\Server\Listener;
+namespace Igni\Network\Server;
 
 use Igni\Network\Server;
-use Igni\Network\Server\Listener;
 
 /**
  * The event happens when the server starts.
  */
-interface OnStart extends Listener
+interface OnStartListener extends Listener
 {
     /**
      * Handles server's start event.

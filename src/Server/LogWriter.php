@@ -1,14 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network;
+namespace Igni\Network\Server;
 
-use Igni\Network\Server\Listener\OnClose;
-use Igni\Network\Server\Listener\OnConnect;
-use Igni\Network\Server\Listener\OnShutdown;
-use Igni\Network\Server\Listener\OnStart;
+use Igni\Network\Server;
 use Psr\Log\LoggerInterface;
 
-class LogWriter implements OnClose, OnConnect, OnShutdown, OnStart, LoggerInterface
+class LogWriter implements OnCloseListener, OnConnectListener, OnShutdownListener, OnStartListener, LoggerInterface
 {
     private $logger;
 

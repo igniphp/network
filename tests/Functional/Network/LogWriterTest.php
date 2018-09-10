@@ -2,13 +2,13 @@
 
 namespace Igni\Tests\Functional\Network\Server;
 
-use Igni\Network\Client;
-use Igni\Network\Logger;
-use Igni\Network\LogWriter;
 use Igni\Network\Server;
+use Igni\Network\Server\Client;
+use Igni\Network\Server\Logger;
+use Igni\Network\Server\LogWriter;
+use Mockery;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Mockery;
 
 final class LogWriterTest extends TestCase
 {

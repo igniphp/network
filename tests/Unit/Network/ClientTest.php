@@ -2,11 +2,12 @@
 
 namespace Igni\Tests\Functional\Network\Server;
 
-use Igni\Network\Client;
 use Igni\Network\Exception\ClientException;
+use Igni\Network\Server\Client;
+use Igni\Network\Server\ClientInfo;
 use Mockery;
-use stdClass;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 final class ClientTest extends TestCase
 {
@@ -26,7 +27,7 @@ final class ClientTest extends TestCase
             ]);
         $client = new Client($handlerMock, 1);
 
-        self::assertInstanceOf(Client\ClientInfo::class, $client->getInfo());
+        self::assertInstanceOf(ClientInfo::class, $client->getInfo());
         self::assertSame(80, $client->getInfo()->getPort());
     }
 

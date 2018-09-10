@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network;
+namespace Igni\Network\Server;
 
 use DateTime;
 use DateTimeZone;

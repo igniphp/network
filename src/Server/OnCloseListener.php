@@ -1,15 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network\Server\Listener;
+namespace Igni\Network\Server;
 
-use Igni\Network\Client;
 use Igni\Network\Server;
-use Igni\Network\Server\Listener;
 
 /**
  * The event happens when the TCP connection between the client and the server is closed.
  */
-interface OnClose extends Listener
+interface OnCloseListener extends Listener
 {
     /**
      * Handles server close event.

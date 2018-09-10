@@ -3,13 +3,13 @@
 namespace Igni\Tests\Functional\Network\Server;
 
 use Closure;
-use Igni\Network\Client;
 use Igni\Network\Http\Response;
 use Igni\Network\Http\Stream;
+use Igni\Network\Server\Client;
 use Igni\Network\Server\Configuration;
 use Igni\Network\Server\HandlerFactory;
 use Igni\Network\Server\HttpServer;
-use Igni\Network\Server\Listener\OnRequest;
+use Igni\Network\Server\OnRequestListener;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -32,7 +32,7 @@ final class HttpServerTest extends TestCase
     public function testOnRequestListener(): void
     {
         $server = $this->mockServer($listeners);
-        $onRequest = Mockery::mock(OnRequest::class);
+        $onRequest = Mockery::mock(OnRequestListener::class);
         $onRequest
             ->shouldReceive('onRequest')
             ->withArgs(function(Client $client, ServerRequestInterface $request, ResponseInterface $response) {
@@ -78,7 +78,7 @@ final class HttpServerTest extends TestCase
             ->shouldReceive('getStatusCode')
             ->andReturn(200);
 
-        $onRequestMock = Mockery::mock(OnRequest::class);
+        $onRequestMock = Mockery::mock(OnRequestListener::class);
         $onRequestMock
             ->shouldReceive('onRequest')
             ->andReturn($psrResponse);

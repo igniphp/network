@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Igni\Network\Client;
+namespace Igni\Network\Server;
 
 /**
  * Value class for aggregating client statistics.

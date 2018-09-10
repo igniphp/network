@@ -2,10 +2,10 @@
 
 namespace Igni\Network\Server;
 
+use Igni\Network\Exception\HttpException;
 use Igni\Network\Http\Response;
 use Igni\Network\Http\ServerRequest;
 use Igni\Network\Server;
-use Igni\Network\Server\Listener\OnRequest;
 use Psr\Log\LoggerInterface;
 use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
@@ -39,7 +39,7 @@ class HttpServer extends Server implements HandlerFactory
 
     public function addListener(Listener $listener): void
     {
-        $this->addListenerByType($listener, OnRequest::class);
+        $this->addListenerByType($listener, OnRequestListener::class);
         parent::addListener($listener);
     }
 
@@ -56,10 +56,18 @@ class HttpServer extends Server implements HandlerFactory
             $psrRequest = ServerRequest::fromSwoole($request);
             $psrResponse = Response::empty();
 
-            $queue = clone $this->listeners[OnRequest::class];
-            /** @var OnRequest $listener */
-            while (!$queue->isEmpty() && $listener = $queue->pop()) {
-                $psrResponse = $listener->onRequest($this->getClient($request->fd), $psrRequest, $psrResponse);
+            $queue = clone $this->listeners[OnRequestListener::class];
+
+            try {
+                /** @var OnRequestListener $listener */
+                while (!$queue->isEmpty() && $listener = $queue->pop()) {
+                    $psrResponse = $listener->onRequest($this->getClient($request->fd), $psrRequest, $psrResponse);
+                }
+            } catch (HttpException $exception) {
+                $psrResponse = $exception->asResponse();
+            } catch (\Throwable $throwable) {
+                $this->logger->error($throwable->getMessage());
+                $psrResponse = Response::empty(Response::HTTP_INTERNAL_SERVER_ERROR);
             }
 
             // Set headers

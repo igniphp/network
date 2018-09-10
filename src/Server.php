@@ -4,19 +4,22 @@ namespace Igni\Network;
 
 use Igni\Exception\RuntimeException;
 use Igni\Network\Exception\ServerException;
+use Igni\Network\Server\Client;
 use Igni\Network\Server\Configuration;
 use Igni\Network\Server\HandlerFactory;
 use Igni\Network\Server\Listener;
-use Igni\Network\Server\Listener\OnClose;
-use Igni\Network\Server\Listener\OnConnect;
-use Igni\Network\Server\Listener\OnReceive;
-use Igni\Network\Server\Listener\OnShutdown;
-use Igni\Network\Server\Listener\OnStart;
+use Igni\Network\Server\LogWriter;
+use Igni\Network\Server\OnCloseListener;
+use Igni\Network\Server\OnConnectListener;
+use Igni\Network\Server\OnReceiveListener;
+use Igni\Network\Server\OnShutdownListener;
+use Igni\Network\Server\OnStartListener;
 use Igni\Network\Server\ServerStats;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use SplQueue;
 use Swoole\Server as SwooleServer;
+
+use function extension_loaded;
 
 /**
  * Http server implementation based on swoole extension.
@@ -98,11 +101,11 @@ class Server implements HandlerFactory
      */
     public function addListener(Listener $listener): void
     {
-        $this->addListenerByType($listener, OnStart::class);
-        $this->addListenerByType($listener, OnClose::class);
-        $this->addListenerByType($listener, OnConnect::class);
-        $this->addListenerByType($listener, OnShutdown::class);
-        $this->addListenerByType($listener, OnReceive::class);
+        $this->addListenerByType($listener, OnStartListener::class);
+        $this->addListenerByType($listener, OnCloseListener::class);
+        $this->addListenerByType($listener, OnConnectListener::class);
+        $this->addListenerByType($listener, OnShutdownListener::class);
+        $this->addListenerByType($listener, OnReceiveListener::class);
     }
 
     protected function addListenerByType(Listener $listener, string $type): void
@@ -203,12 +206,12 @@ class Server implements HandlerFactory
         $this->handler->on('Connect', function($handler, int $clientId) {
             $this->createClient($handler, $clientId);
 
-            if (!isset($this->listeners[OnConnect::class])) {
+            if (!isset($this->listeners[OnConnectListener::class])) {
                 return;
             }
 
-            $queue = clone $this->listeners[OnConnect::class];
-            /** @var OnConnect $listener */
+            $queue = clone $this->listeners[OnConnectListener::class];
+            /** @var OnConnectListener $listener */
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
                 $listener->onConnect($this, $this->getClient($clientId));
             }
@@ -218,10 +221,10 @@ class Server implements HandlerFactory
     protected function createOnCloseListener(): void
     {
         $this->handler->on('Close', function($handler, int $clientId) {
-            if (isset($this->listeners[OnClose::class])) {
+            if (isset($this->listeners[OnCloseListener::class])) {
 
-                $queue = clone $this->listeners[OnClose::class];
-                /** @var OnClose $listener */
+                $queue = clone $this->listeners[OnCloseListener::class];
+                /** @var OnCloseListener $listener */
                 while (!$queue->isEmpty() && $listener = $queue->pop()) {
                     $listener->onClose($this, $this->getClient($clientId));
                 }
@@ -234,13 +237,13 @@ class Server implements HandlerFactory
     protected function createOnShutdownListener(): void
     {
         $this->handler->on('Shutdown', function() {
-            if (!isset($this->listeners[OnShutdown::class])) {
+            if (!isset($this->listeners[OnShutdownListener::class])) {
                 return;
             }
 
-            $queue = clone $this->listeners[OnShutdown::class];
+            $queue = clone $this->listeners[OnShutdownListener::class];
 
-            /** @var OnShutdown $listener */
+            /** @var OnShutdownListener $listener */
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
                 $listener->onShutdown($this);
             }
@@ -250,12 +253,12 @@ class Server implements HandlerFactory
     protected function createOnStartListener(): void
     {
         $this->handler->on('Start', function() {
-            if (!isset($this->listeners[OnStart::class])) {
+            if (!isset($this->listeners[OnStartListener::class])) {
                 return;
             }
 
-            $queue = clone $this->listeners[OnStart::class];
-            /** @var OnStart $listener */
+            $queue = clone $this->listeners[OnStartListener::class];
+            /** @var OnStartListener $listener */
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
                 $listener->onStart($this);
             }
@@ -265,13 +268,13 @@ class Server implements HandlerFactory
     protected function createOnReceiveListener(): void
     {
         $this->handler->on('Receive', function ($handler, int $clientId, int $fromId, string $data) {
-            if (!isset($this->listeners[OnReceive::class])) {
+            if (!isset($this->listeners[OnReceiveListener::class])) {
                 return;
             }
 
-            $queue = clone $this->listeners[OnReceive::class];
+            $queue = clone $this->listeners[OnReceiveListener::class];
 
-            /** @var OnReceive $listener */
+            /** @var OnReceiveListener $listener */
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
                 $listener->onReceive($this, $this->getClient($clientId), $data);
             }
