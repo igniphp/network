@@ -1,5 +1,5 @@
 {
-  "name": "igniphp/http-server",
+  "name": "igniphp/network",
   "description": "PHP swoole based http server",
   "keywords": [
     "swoole",
