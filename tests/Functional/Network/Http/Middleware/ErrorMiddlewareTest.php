@@ -67,7 +67,7 @@ final class ErrorMiddlewareTest extends TestCase
 
         $response = $middleware->process(Mockery::mock(ServerRequestInterface::class), $requestHandler);
 
-        self::assertSame($error->asResponse()->getStatusCode(), $response->getStatusCode());
-        self::assertSame((string) $error->asResponse()->getBody(), (string) $response->getBody());
+        self::assertSame($error->toResponse()->getStatusCode(), $response->getStatusCode());
+        self::assertSame((string) $error->toResponse()->getBody(), (string) $response->getBody());
     }
 }

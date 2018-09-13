@@ -6,5 +6,5 @@ use Psr\Http\Message\ResponseInterface;
 
 interface HttpException extends NetworkException
 {
-    public function asResponse(): ResponseInterface;
+    public function toResponse(): ResponseInterface;
 }

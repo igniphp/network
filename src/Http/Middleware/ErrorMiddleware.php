@@ -53,7 +53,7 @@ final class ErrorMiddleware implements MiddlewareInterface
             }
 
             if ($exception instanceof HttpException) {
-                $response = $exception->asResponse();
+                $response = $exception->toResponse();
             } else {
                 $response = Response::asText($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
             }

@@ -40,7 +40,7 @@ class RouterException extends RuntimeException implements HttpException
         return $exception;
     }
 
-    public function asResponse(): ResponseInterface
+    public function toResponse(): ResponseInterface
     {
         return Response::asText($this->getMessage(), $this->httpStatus);
     }

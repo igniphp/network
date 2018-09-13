@@ -64,7 +64,7 @@ class HttpServer extends Server implements HandlerFactory
                     $psrResponse = $listener->onRequest($this->getClient($request->fd), $psrRequest, $psrResponse);
                 }
             } catch (HttpException $exception) {
-                $psrResponse = $exception->asResponse();
+                $psrResponse = $exception->toResponse();
             } catch (\Throwable $throwable) {
                 $this->logger->error($throwable->getMessage());
                 $psrResponse = Response::empty(Response::HTTP_INTERNAL_SERVER_ERROR);
