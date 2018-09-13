@@ -1,13 +1,14 @@
 # ![Igni logo](https://github.com/igniphp/common/blob/master/logo/full.svg)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Build Status](https://travis-ci.org/igniphp/http-server.svg?branch=master)](https://travis-ci.org/igniphp/http-server)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/igniphp/http-server/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/igniphp/http-server/?branch=master)
-[![Code Coverage](https://scrutinizer-ci.com/g/igniphp/http-server/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/igniphp/http-server/?branch=master)
+[![Build Status](https://travis-ci.org/igniphp/network.svg?branch=master)](https://travis-ci.org/igniphp/network)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/igniphp/network/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/igniphp/network/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/igniphp/network/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/igniphp/network/?branch=master)
 
 ## Requirements
 
-Swoole extension is required
+- PHP 7.1 or better
+- Swoole extension is required for network server to work
 
 ## Installation
 
@@ -15,19 +16,19 @@ Linux users:
 
 ```
 pecl install swoole
-composer install igniphp/http-server
+composer install igniphp/network
 ```
 
 Mac users with homebrew:
 
 ```
 brew install swoole
-composer install igniphp/http-server
+composer install igniphp/network
 ```
 or:
 ```
 brew install homebrew/php/php71-swoole
-composer install igniphp/http-server
+composer install igniphp/network
 ```
 
 
@@ -49,19 +50,19 @@ Igni http server uses event-driven model that makes it easy to scale and extend.
 
 There are five type of events available, each of them extends `Igni\Network\Server\Listener` interface:
 
- - `Igni\Network\Server\Listener\OnStart` fired when server starts
- - `Igni\Network\Server\Listener\OnStop` fired when server stops
- - `Igni\Network\Server\Listener\OnConnect` fired when new client connects to the server
- - `Igni\Network\Server\Listener\OnClose` fired when connection with the client is closed
- - `Igni\Network\Server\Listener\OnRequest` fired when new request is dispatched
+ - `Igni\Network\Server\OnStartListener` fired when server starts
+ - `Igni\Network\Server\OnStopListener` fired when server stops
+ - `Igni\Network\Server\OnConnectListener` fired when new client connects to the server
+ - `Igni\Network\Server\OnCloseListener` fired when connection with the client is closed
+ - `Igni\Network\Server\OnRequestListener` fired when new request is dispatched
  
  ```php
  <?php
  // Autoloader.
  require_once __DIR__ . '/vendor/autoload.php';
  
- use Igni\Network\Client;
- use Igni\Network\Server\Listener\OnRequest;
+ use Igni\Network\Server\Client;
+ use Igni\Network\Server\OnRequestListener;
  use Psr\Http\Message\ServerRequestInterface;
  use Psr\Http\Message\ResponseInterface;
  use Igni\Network\Http\Stream;
@@ -70,7 +71,7 @@ There are five type of events available, each of them extends `Igni\Network\Serv
  $server = new \Igni\Network\Server();
  
  // Each request will retrieve 'Hello' response
- $server->addListener(new class implements OnRequest {
+ $server->addListener(new class implements OnRequestListener {
      public function onRequest(Client $client, ServerRequestInterface $request, ResponseInterface $response): ResponseInterface {
         return $response->withBody(Stream::fromString("Hello world"));
      }
