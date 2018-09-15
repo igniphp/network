@@ -107,6 +107,16 @@ class Configuration
     }
 
     /**
+     * Sets response compression level 0 - no compression 9 - high compression
+     *
+     * @param int $level
+     */
+    public function setResponseCompression(int $level = 0): void
+    {
+        $this->settings['compression_level'] = $level;
+    }
+
+    /**
      * Checks if server is daemonized.
      *
      * @return bool

@@ -99,12 +99,9 @@ final class HttpServerTest extends TestCase
         $swooleResponseMock
             ->shouldReceive('end')
             ->withArgs(function(string $result) {
-                self::assertSame('test gzip', $result);
+                self::assertSame(gzencode('test gzip', 0), $result);
                 return true;
             });
-        $swooleResponseMock
-            ->shouldReceive('gzip')
-            ->withArgs([1]);
 
         $listeners['Connect']($server, 1);
         $listeners['Request']($swooleRequestMock, $swooleResponseMock);

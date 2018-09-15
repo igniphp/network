@@ -19,6 +19,11 @@ use function strtolower;
 
 class HttpServer extends Server implements HandlerFactory
 {
+    /**
+     * @var int
+     */
+    private $compressionLevel = 0;
+
     public function __construct(Configuration $settings = null, LoggerInterface $logger = null, HandlerFactory $handlerFactory = null)
     {
         parent::__construct($settings, $logger, $handlerFactory ?? $this);
@@ -31,6 +36,7 @@ class HttpServer extends Server implements HandlerFactory
             $flags |= SWOOLE_SSL;
         }
         $settings = $configuration->toArray();
+        $this->compressionLevel = $settings['compression_level'] ?? 0;
         $handler = new SwooleHttpServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
         $handler->set($settings);
 
@@ -92,10 +98,11 @@ class HttpServer extends Server implements HandlerFactory
                 $encoding = explode(',', strtolower(implode(',', $psrRequest->getHeader('accept-encoding'))));
 
                 if (in_array('gzip', $encoding, true)) {
-                    $response->gzip(1);
+                    $response->header('content-encoding', 'gzip');
+                    $body = gzencode($body, $this->compressionLevel);
                 } elseif (in_array('deflate', $encoding, true)) {
                     $response->header('content-encoding', 'deflate');
-                    $body = gzdeflate($body);
+                    $body = gzdeflate($body, $this->compressionLevel);
                 }
             }
 
