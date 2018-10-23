@@ -42,7 +42,6 @@ class Request implements RequestInterface
      */
     public function __construct(string $uri = null, string $method = self::METHOD_GET, $body = 'php://temp', array $headers = [])
     {
-        $this->validateMethod($method);
         $this->validateUri($uri);
         $this->setHeaders($headers);
         $this->method = $method;
