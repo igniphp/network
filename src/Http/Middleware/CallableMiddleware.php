@@ -2,7 +2,7 @@
 
 namespace Igni\Network\Http\Middleware;
 
-use Igni\Application\Exception\MiddlewareException;
+use Igni\Network\Exception\MiddlewareException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
