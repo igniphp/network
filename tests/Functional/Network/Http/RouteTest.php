@@ -15,9 +15,9 @@ final class RouteTest extends TestCase
     public function testRouteNaming(): void
     {
         $route = Route::get('/test/{var}');
-        self::assertSame('test_var', $route->getName());
+        self::assertSame('get_test_var', $route->getName());
         $route = Route::get('/test/{var1}<\d+>');
-        self::assertSame('test_var1', $route->getName());
+        self::assertSame('get_test_var1', $route->getName());
         $route = Route::get('/test/{blabla}', 'test_route');
         self::assertSame('test_route', $route->getName());
     }
