@@ -34,7 +34,7 @@ class Route
     public function __construct(string $path, array $methods = ['GET'], string $name = '')
     {
         if (empty($name)) {
-            $name = self::generateNameFromPath($path);
+            $name = self::generateNameFromPath($path, $methods);
         }
         $this->name = $name;
         $this->methods = $methods;
@@ -210,13 +210,17 @@ class Route
 
     /**
      * Generates default name from given path expression,
-     * /some/{resource} becomes some_resource
+     * GET /some/{resource} becomes get_some_resource
+     *
      * @param string $path
+     * @param array $methods
      * @return string
      */
-    public static function generateNameFromPath(string $path): string
+    public static function generateNameFromPath(string $path, array $methods): string
     {
         $path = preg_replace('/<[^>]+>/', '', $path);
-        return str_replace(['{', '}', '?', '.', '/'], ['', '', '', '_', '_'], trim($path, '/'));
+        $uri = str_replace(['{', '}', '?', '.', '/'], ['', '', '', '_', '_'], trim($path, '/'));
+
+        return strtolower(array_shift($methods)) . '_' . $uri;
     }
 }
