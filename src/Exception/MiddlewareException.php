@@ -16,7 +16,7 @@ class MiddlewareException extends RuntimeException
     {
         $dumped = var_export($response, true);
         return new self(sprintf(
-            "Middleware failed to produce valid response object, expected instance of `%s` got `%s`".
+            "Middleware failed to produce valid response object, expected instance of `%s` got `%s`",
             ResponseInterface::class,
             $dumped
         ));
