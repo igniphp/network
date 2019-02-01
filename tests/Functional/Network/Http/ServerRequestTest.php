@@ -59,6 +59,36 @@ final class ServerRequestTest extends TestCase
         self::assertSame(['test' => '1'], $request->getQueryParams());
     }
 
+    public function testParseJsonBody(): void
+    {
+        $data = [
+            'json' => true,
+            'body' => 'cool',
+        ];
+        $headers = [
+            'Content-Type' => 'application/json',
+        ];
+        $body = json_encode($data);
+        $serverRequest = new ServerRequest('some/uri?test=1', 'POST', $body, $headers);
+
+        self::assertSame($data, $serverRequest->getParsedBody());
+    }
+
+    public function testParseApplicationFormBody(): void
+    {
+        $data = [
+            'json' => '1',
+            'body' => 'cool',
+        ];
+        $headers = [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ];
+        $body = http_build_query($data);
+        $serverRequest = new ServerRequest('some/uri?test=1', 'POST', $body, $headers);
+
+        self::assertSame($data, $serverRequest->getParsedBody());
+    }
+
     public function testFactoryFromGlobals(): void
     {
         $request = ServerRequest::fromGlobals();

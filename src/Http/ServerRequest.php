@@ -68,6 +68,29 @@ class ServerRequest extends Request implements ServerRequestInterface
         $this->serverParams  = $serverParams;
         $this->uploadedFiles = $uploadedFiles;
         parse_str($this->getUri()->getQuery(), $this->queryParams);
+        $this->parseBody();
+    }
+
+    private function parseBody(): void
+    {
+        $contentType = $this->getHeader('Content-Type')[0] ?? '';
+
+        $body = (string) $this->getBody();
+
+        switch (strtolower($contentType)) {
+            case 'application/json':
+                $this->parsedBody = json_decode($body, true);
+                return;
+            case 'application/x-www-form-urlencoded':
+                 parse_str($body, $this->parsedBody);
+                 return;
+            case 'application/xml':
+                $this->parsedBody = simplexml_load_string($body);
+                return;
+            case 'text/csv':
+                $this->parsedBody = str_getcsv($body);
+                return;
+        }
     }
 
     /**
