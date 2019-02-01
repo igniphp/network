@@ -3,6 +3,7 @@
 namespace Igni\Tests\Functional\Network\Http\Middleware;
 
 use Igni\Exception\RuntimeException;
+use Igni\Network\Exception\MiddlewareException;
 use Igni\Network\Http\Middleware\CallableMiddleware;
 use Igni\Network\Http\ServerRequest;
 use Igni\Tests\Fixtures\CustomHttpException;
@@ -21,11 +22,9 @@ final class CallableMiddlewareTest extends TestCase
         self::assertInstanceOf(CallableMiddleware::class, $middleware);
     }
 
-    /**
-     * @expectedException \Igni\Network\Exception\MiddlewareException
-     */
     public function testNegativeUsageCase(): void
     {
+        $this->expectException(MiddlewareException::class);
         $middleware = new CallableMiddleware(function() {});
         $middleware->process(
             Mockery::mock(ServerRequestInterface::class),

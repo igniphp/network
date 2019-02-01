@@ -185,9 +185,6 @@ final class ServerTest extends TestCase
         $onReceive = Mockery::mock(Server\OnReceiveListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onReceive);
-        $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\OnReceiveListener::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\OnReceiveListener::class]);
         self::assertTrue($server->hasListener($onReceive));
     }
 
