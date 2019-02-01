@@ -109,7 +109,7 @@ XML;
         $response->write('a');
         self::assertSame('testa', (string) $response->getBody());
         $response->end();
-        self::assertTrue(self::readAttribute($response, 'complete'));
+        self::assertTrue($response->isComplete());
 
         $this->expectException(RuntimeException::class);
         $response->write('1');

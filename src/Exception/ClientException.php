@@ -16,5 +16,10 @@ class ClientException extends ServerException implements NetworkException
     {
         return new self("Could not send wait signal to {$client}");
     }
+
+    public static function forInactiveClient(int $clientId): self
+    {
+        return new self("Client with id {$clientId} was not connected or is already disconnected.");
+    }
 }
 

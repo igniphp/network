@@ -3,6 +3,7 @@
 namespace Igni\Tests\Functional\Network;
 
 use Closure;
+use Igni\Network\Exception\ClientException;
 use Igni\Network\Exception\ServerException;
 use Igni\Network\Server;
 use Igni\Network\Server\Client;
@@ -34,9 +35,9 @@ final class ServerTest extends TestCase
         $server = new Server($configuration, $logger, $handlerFactory);
         $server->start();
         self::assertSame(['Connect', 'Close', 'Shutdown', 'Start', 'Receive'], array_keys($listeners));
-        self::assertTrue(self::readAttribute($server, 'started'));
+        self::assertTrue($server->isRunning());
         $server->stop();
-        self::assertFalse(self::readAttribute($server, 'started'));
+        self::assertFalse($server->isRunning());
     }
 
     public function testGetConfig(): void
@@ -62,11 +63,12 @@ final class ServerTest extends TestCase
         $server->start();
 
         $listeners['Connect'](null, 1);
-        $clients = self::readAttribute($server, 'clients');
-        self::assertCount(1, $clients);
-        self::assertInstanceOf(Client::class, $clients[1]);
+        $client = $server->getClient(1);
+        self::assertInstanceOf(Client::class, $client);
         $listeners['Close'](null, 1);
-        self::assertCount(0, self::readAttribute($server, 'clients'));
+
+        $this->expectException(ClientException::class);
+        $server->getClient(1);
     }
 
     public function testOnStartListener(): void
@@ -162,34 +164,22 @@ final class ServerTest extends TestCase
         $onStart = Mockery::mock(Server\OnStartListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onStart);
-        $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\OnStartListener::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\OnStartListener::class]);
         self::assertTrue($server->hasListener($onStart));
 
         $onShutdown = Mockery::mock(Server\OnShutdownListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onShutdown);
-        $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\OnShutdownListener::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\OnShutdownListener::class]);
         self::assertTrue($server->hasListener($onShutdown));
         self::assertFalse($server->hasListener($onStart));
 
         $onClose = Mockery::mock(Server\OnCloseListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onClose);
-        $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\OnCloseListener::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\OnCloseListener::class]);
         self::assertTrue($server->hasListener($onClose));
 
         $onConnect = Mockery::mock(Server\OnConnectListener::class);
         $server = $this->mockServer($listeners);
         $server->addListener($onConnect);
-        $listeners = self::readAttribute($server, 'listeners');
-        self::assertSame([Server\OnConnectListener::class], array_keys($listeners));
-        self::assertCount(1, $listeners[Server\OnConnectListener::class]);
         self::assertTrue($server->hasListener($onConnect));
 
         $onReceive = Mockery::mock(Server\OnReceiveListener::class);

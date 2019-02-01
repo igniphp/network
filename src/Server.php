@@ -3,6 +3,7 @@
 namespace Igni\Network;
 
 use Igni\Exception\RuntimeException;
+use Igni\Network\Exception\ClientException;
 use Igni\Network\Exception\ServerException;
 use Igni\Network\Server\Client;
 use Igni\Network\Server\Configuration;
@@ -63,7 +64,7 @@ class Server implements HandlerFactory
     /**
      * @var bool
      */
-    private $started = false;
+    private $running = false;
 
     public function __construct(
         Configuration $settings = null,
@@ -89,8 +90,16 @@ class Server implements HandlerFactory
         return $this->configuration;
     }
 
+    /**
+     * @param int $id
+     * @return Client
+     * @throws ClientException if client was not found
+     */
     public function getClient(int $id): Client
     {
+        if (!isset($this->clients[$id])) {
+            throw ClientException::forInactiveClient($id);
+        }
         return $this->clients[$id];
     }
 
@@ -145,7 +154,7 @@ class Server implements HandlerFactory
      */
     public function getServerStats(): ServerStats
     {
-        if (!$this->started) {
+        if (!$this->running) {
             throw ServerException::forMethodCallOnIdleServer(__METHOD__);
         }
         return new ServerStats($this->handler->stats());
@@ -170,7 +179,7 @@ class Server implements HandlerFactory
         $this->handler = $this->handlerFactory->createHandler($this->configuration);
         $this->createListeners();
         $this->handler->start();
-        $this->started = true;
+        $this->running = true;
     }
 
     public function stop(): void
@@ -179,7 +188,12 @@ class Server implements HandlerFactory
             $this->handler->shutdown();
             $this->handler = null;
         }
-        $this->started = false;
+        $this->running = false;
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->running;
     }
 
     protected function createListeners(): void
@@ -247,6 +261,7 @@ class Server implements HandlerFactory
             while (!$queue->isEmpty() && $listener = $queue->pop()) {
                 $listener->onShutdown($this);
             }
+            $this->clients = [];
         });
     }
 

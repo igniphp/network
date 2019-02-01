@@ -220,6 +220,11 @@ class Response implements ResponseInterface
         return $this;
     }
 
+    public function isComplete(): bool
+    {
+        return $this->complete;
+    }
+
     /**
      * {@inheritdoc}
      */
