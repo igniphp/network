@@ -36,6 +36,7 @@ class HttpServer extends Server implements HandlerFactory
             $flags |= SWOOLE_SSL;
         }
         $settings = $configuration->toArray();
+        $settings['http_compression'] = 0;
         $this->compressionLevel = $settings['compression_level'] ?? 0;
         $handler = new SwooleHttpServer($settings['address'], $settings['port'], SWOOLE_PROCESS, $flags);
         $handler->set($settings);
